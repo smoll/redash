@@ -5,7 +5,7 @@ import sys
 import requests
 import filecmp
 from fabric.context_managers import hide, settings, prefix
-from fabric.api import sudo, task, run, cd, env
+from fabric.api import sudo, task, run, cd, env, put
 from fabric.contrib.console import confirm
 from fabric.colors import green
 
@@ -109,6 +109,36 @@ def deploy_latest_release(should_link=True, restart=True, stable='True'):
         with hide('running', 'stdout', 'stderr'):
             print green("Downloading latest version...")
             run('sudo wget --header="Accept: application/octet-stream" -O {} {}'.format(filename, asset_url))
+            print green("Unpacking...")
+            run('sudo mkdir -p {}'.format(directory_name))
+            run('sudo tar -C {} -xvf {}'.format(directory_name, filename))
+            print green("Changing ownership to redash...")
+            run('sudo chown redash {}'.format(directory_name))
+            print green("Linking .env file...")
+            run('sudo ln -nfs /opt/redash/.env /opt/redash/{0}/.env'.format(directory_name))
+
+    update_requirements(version_name)
+    apply_migrations(version_name)
+
+    if should_link:
+        link_to_current(version_name)
+
+    if restart:
+        restart_services()
+
+@task
+def deploy_custom_tarball(should_link=True, restart=True):
+    filename = 'master.tar.gz'
+
+    # Get file & extract
+    version_name = filename.replace('.tar.gz', '')
+    print "Deploying version: {}".format(version_name)
+    directory_name = version_name
+
+    with cd('/opt/redash'):
+        with hide('running', 'stdout', 'stderr'):
+            print green("Downloading latest version...")
+            put(filename, filename, use_sudo=True)
             print green("Unpacking...")
             run('sudo mkdir -p {}'.format(directory_name))
             run('sudo tar -C {} -xvf {}'.format(directory_name, filename))
