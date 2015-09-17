@@ -23,7 +23,7 @@ def get_stable_release():
         exit("Failed getting release (status code: %s)." % response.status_code)
 
     return asset_from_release(response.json())
-    
+
 
 def get_latest_release():
     response = requests.get('https://api.github.com/repos/EverythingMe/redash/releases')
@@ -77,7 +77,7 @@ def update_requirements(version_name):
     with settings(hide('running', 'stdout', 'stderr'), warn_only=True):
         result = run('diff /opt/redash/current/requirements.txt {}'.format(new_requirements_file))
         new_requirements = result.failed
-    
+
     if new_requirements:
         run('sudo pip install -r {}'.format(new_requirements_file))
 
@@ -107,14 +107,14 @@ def deploy_latest_release(should_link=True, restart=True, stable='True'):
 
     with cd('/opt/redash'):
         with hide('running', 'stdout', 'stderr'):
-            print green("Downloading latest version...")        
+            print green("Downloading latest version...")
             run('sudo wget --header="Accept: application/octet-stream" -O {} {}'.format(filename, asset_url))
-            print green("Unpacking...")        
+            print green("Unpacking...")
             run('sudo mkdir -p {}'.format(directory_name))
             run('sudo tar -C {} -xvf {}'.format(directory_name, filename))
-            print green("Changing ownership to redash...")        
+            print green("Changing ownership to redash...")
             run('sudo chown redash {}'.format(directory_name))
-            print green("Linking .env file...")        
+            print green("Linking .env file...")
             run('sudo ln -nfs /opt/redash/.env /opt/redash/{0}/.env'.format(directory_name))
 
     update_requirements(version_name)
